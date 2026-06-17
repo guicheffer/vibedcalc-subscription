@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Vibed Calc</title>
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0a0a0f;
+                --surface: rgba(255, 255, 255, 0.04);
+                --surface-hover: rgba(255, 255, 255, 0.08);
+                --border: rgba(255, 255, 255, 0.08);
+                --border-strong: rgba(255, 255, 255, 0.14);
+                --text: #f0f0f5;
+                --text-dim: rgba(240, 240, 245, 0.45);
+                --accent-cyan: #00e5ff;
+                --accent-violet: #b845ff;
+                --accent-green: #00ff88;
+                --accent-red: #ff4b6e;
+                --operator-bg: rgba(184, 69, 255, 0.12);
+                --operator-border: rgba(184, 69, 255, 0.28);
+                --operator-text: #c96bff;
+                --equal-bg: linear-gradient(
+                    135deg,
+                    rgba(0, 229, 255, 0.22),
+                    rgba(184, 69, 255, 0.22)
+                );
+                --shadow-glow-cyan: 0 0 24px rgba(0, 229, 255, 0.18);
+                --shadow-glow-violet: 0 0 24px rgba(184, 69, 255, 0.18);
+                --radius-sm: 10px;
+                --radius-md: 16px;
+                --radius-lg: 24px;
+                --radius-xl: 32px;
+                --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            html,
+            body {
+                height: 100%;
+            }
+
+            body {
+                background: var(--bg);
+                background-image:
+                    radial-gradient(
+                        ellipse 80% 50% at 20% -10%,
+                        rgba(0, 229, 255, 0.07) 0%,
+                        transparent 60%
+                    ),
+                    radial-gradient(
+                        ellipse 60% 40% at 80% 110%,
+                        rgba(184, 69, 255, 0.07) 0%,
+                        transparent 60%
+                    );
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+                    sans-serif;
+                color: var(--text);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100svh;
+                padding: 24px 16px;
+            }
+
+            /* ── Calculator shell ─────────────────────────────────────────── */
+
+            .calc-wrap {
+                width: 100%;
+                max-width: 440px;
+            }
+
+            .calc-card {
+                background: rgba(16, 16, 26, 0.78);
+                backdrop-filter: blur(40px) saturate(180%);
+                -webkit-backdrop-filter: blur(40px) saturate(180%);
+                border: 1px solid var(--border-strong);
+                border-radius: var(--radius-xl);
+                overflow: hidden;
+                box-shadow:
+                    0 48px 120px rgba(0, 0, 0, 0.72),
+                    0 0 0 0.5px rgba(255, 255, 255, 0.08) inset,
+                    var(--shadow-glow-cyan);
+            }
+
+            /* ── Display ──────────────────────────────────────────────────── */
+
+            .display {
+                padding: 40px 36px 28px;
+                background: rgba(0, 0, 0, 0.32);
+                border-bottom: 1px solid var(--border);
+                min-height: 168px;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                align-items: flex-end;
+                gap: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .display::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(
+                    180deg,
+                    rgba(0, 229, 255, 0.03) 0%,
+                    transparent 100%
+                );
+                pointer-events: none;
+            }
+
+            .display-expression {
+                font-size: 15px;
+                color: var(--text-dim);
+                letter-spacing: 0.02em;
+                min-height: 20px;
+                text-align: right;
+                transition: opacity var(--transition);
+                word-break: break-all;
+            }
+
+            .display-main {
+                font-size: clamp(48px, 11vw, 72px);
+                font-weight: 300;
+                letter-spacing: -0.03em;
+                line-height: 1;
+                text-align: right;
+                word-break: break-all;
+                transition:
+                    opacity var(--transition),
+                    transform var(--transition);
+                background: linear-gradient(
+                    135deg,
+                    #ffffff 40%,
+                    rgba(0, 229, 255, 0.8)
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .display-main.flash {
+                opacity: 0.5;
+                transform: scale(0.97);
+            }
+
+            /* ── Keypad ───────────────────────────────────────────────────── */
+
+            .keypad {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+                padding: 28px;
+            }
+
+            .key {
+                position: relative;
+                height: 80px;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                background: var(--surface);
+                color: var(--text);
+                font-size: 24px;
+                font-weight: 400;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                user-select: none;
+                transition:
+                    background var(--transition),
+                    border-color var(--transition),
+                    transform var(--transition),
+                    box-shadow var(--transition);
+                -webkit-tap-highlight-color: transparent;
+                overflow: hidden;
+            }
+
+            .key::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: rgba(255, 255, 255, 0);
+                transition: background 80ms ease;
+            }
+
+            .key:hover {
+                background: var(--surface-hover);
+                border-color: var(--border-strong);
+            }
+
+            .key:active,
+            .key.pressed {
+                transform: scale(0.93);
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            .key:active::after,
+            .key.pressed::after {
+                background: rgba(255, 255, 255, 0.06);
+            }
+
+            /* operator keys */
+            .key.op {
+                background: var(--operator-bg);
+                border-color: var(--operator-border);
+                color: var(--operator-text);
+                font-size: 26px;
+            }
+
+            .key.op:hover {
+                background: rgba(184, 69, 255, 0.2);
+                border-color: rgba(184, 69, 255, 0.45);
+                box-shadow: 0 0 18px rgba(184, 69, 255, 0.2);
+            }
+
+            /* premium operator keys (× ÷) */
+            .key.op.premium {
+                position: relative;
+            }
+
+            .key.op.premium::before {
+                content: "✦";
+                position: absolute;
+                top: 7px;
+                right: 9px;
+                font-size: 7px;
+                color: var(--accent-cyan);
+                opacity: 0.7;
+                line-height: 1;
+            }
+
+            /* equals key */
+            .key.equal {
+                background: var(--equal-bg);
+                border-color: rgba(0, 229, 255, 0.3);
+                color: #fff;
+                font-size: 28px;
+                font-weight: 300;
+                box-shadow: var(--shadow-glow-cyan);
+            }
+
+            .key.equal:hover {
+                border-color: rgba(0, 229, 255, 0.55);
+                box-shadow: 0 0 32px rgba(0, 229, 255, 0.28);
+            }
+
+            /* clear key */
+            .key.clear {
+                background: rgba(255, 75, 110, 0.1);
+                border-color: rgba(255, 75, 110, 0.22);
+                color: #ff6b88;
+                font-size: 16px;
+                font-weight: 500;
+                letter-spacing: 0.04em;
+            }
+
+            .key.clear:hover {
+                background: rgba(255, 75, 110, 0.18);
+                border-color: rgba(255, 75, 110, 0.38);
+            }
+
+            /* plus-minus and percent */
+            .key.fn {
+                color: var(--text-dim);
+                font-size: 22px;
+            }
+
+            /* zero key spans 2 cols */
+            .key.zero {
+                grid-column: span 2;
+                justify-content: flex-start;
+                padding-left: 32px;
+                font-size: 24px;
+            }
+
+            /* ── Modal overlay ────────────────────────────────────────────── */
+
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.45);
+                backdrop-filter: blur(6px) saturate(140%);
+                -webkit-backdrop-filter: blur(6px) saturate(140%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+                z-index: 100;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .modal-overlay.visible {
+                opacity: 1;
+                pointer-events: all;
+            }
+
+            .modal {
+                width: 100%;
+                max-width: 440px;
+                background: rgba(18, 12, 30, 0.72);
+                backdrop-filter: blur(32px) saturate(160%);
+                -webkit-backdrop-filter: blur(32px) saturate(160%);
+                border: 1px solid rgba(184, 69, 255, 0.25);
+                border-radius: var(--radius-xl);
+                padding: 40px 36px 36px;
+                box-shadow:
+                    0 40px 100px rgba(0, 0, 0, 0.5),
+                    0 0 0 0.5px rgba(255, 255, 255, 0.06) inset,
+                    0 0 60px rgba(184, 69, 255, 0.1);
+                transform: scale(0.94) translateY(8px);
+                transition:
+                    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                    opacity 200ms ease;
+                opacity: 0;
+            }
+
+            .modal-overlay.visible .modal {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+
+            .modal-eyebrow {
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--accent-cyan);
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .modal-eyebrow::before {
+                content: "";
+                display: inline-block;
+                width: 20px;
+                height: 1px;
+                background: var(--accent-cyan);
+                opacity: 0.6;
+            }
+
+            .modal-title {
+                font-size: 26px;
+                font-weight: 600;
+                line-height: 1.2;
+                margin-bottom: 10px;
+                background: linear-gradient(
+                    135deg,
+                    #ffffff 30%,
+                    rgba(184, 69, 255, 0.9)
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .modal-subtitle {
+                font-size: 14px;
+                color: var(--text-dim);
+                line-height: 1.6;
+                margin-bottom: 28px;
+            }
+
+            .modal-divider {
+                height: 1px;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(184, 69, 255, 0.3),
+                    transparent
+                );
+                margin-bottom: 24px;
+            }
+
+            .modal-plan-label {
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                margin-bottom: 14px;
+            }
+
+            .modal-features {
+                list-style: none;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 28px;
+            }
+
+            .modal-features li {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                font-size: 14px;
+                color: rgba(240, 240, 245, 0.82);
+                line-height: 1.4;
+            }
+
+            .modal-features li .icon {
+                flex-shrink: 0;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: rgba(184, 69, 255, 0.15);
+                border: 1px solid rgba(184, 69, 255, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                margin-top: 1px;
+            }
+
+            .modal-features li .label {
+                flex: 1;
+            }
+
+            .modal-features li .label strong {
+                color: var(--text);
+                font-weight: 500;
+            }
+
+            .modal-features li .label span {
+                display: block;
+                font-size: 12px;
+                color: var(--text-dim);
+                margin-top: 1px;
+            }
+
+            .modal-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-coming-soon {
+                width: 100%;
+                height: 52px;
+                border-radius: var(--radius-md);
+                background: linear-gradient(
+                    135deg,
+                    rgba(0, 229, 255, 0.15),
+                    rgba(184, 69, 255, 0.15)
+                );
+                border: 1px solid rgba(184, 69, 255, 0.4);
+                color: var(--text);
+                font-size: 15px;
+                font-weight: 500;
+                letter-spacing: 0.02em;
+                cursor: default;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .btn-coming-soon::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(
+                    90deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.04) 50%,
+                    transparent 100%
+                );
+                animation: shimmer 2.4s ease-in-out infinite;
+            }
+
+            @keyframes shimmer {
+                0% {
+                    transform: translateX(-100%);
+                }
+                100% {
+                    transform: translateX(100%);
+                }
+            }
+
+            .btn-coming-soon .badge {
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                background: rgba(0, 229, 255, 0.15);
+                border: 1px solid rgba(0, 229, 255, 0.3);
+                color: var(--accent-cyan);
+                padding: 2px 7px;
+                border-radius: 20px;
+            }
+
+            .btn-dismiss {
+                width: 100%;
+                height: 44px;
+                border-radius: var(--radius-md);
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--text-dim);
+                font-size: 14px;
+                font-weight: 400;
+                cursor: pointer;
+                transition:
+                    background var(--transition),
+                    border-color var(--transition),
+                    color var(--transition);
+            }
+
+            .btn-dismiss:hover {
+                background: var(--surface-hover);
+                border-color: var(--border-strong);
+                color: var(--text);
+            }
+
+            /* ── Wordmark / branding ──────────────────────────────────────── */
+
+            .wordmark {
+                text-align: center;
+                margin-bottom: 24px;
+                font-size: 14px;
+                font-weight: 600;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+                color: var(--text-dim);
+            }
+
+            .wordmark span {
+                color: var(--accent-cyan);
+            }
+
+            .alphalist-logo {
+                text-align: center;
+                margin-top: 20px;
+                font-family: "Courier New", Courier, monospace;
+                font-size: 11px;
+                color: rgba(240, 240, 245, 0.2);
+                letter-spacing: 0.08em;
+                transition: color var(--transition);
+            }
+
+            .alphalist-logo:hover {
+                color: rgba(240, 240, 245, 0.45);
+            }
+
+            .factory-link {
+                display: block;
+                text-align: center;
+                margin-top: 10px;
+                font-size: 11px;
+                color: rgba(0, 212, 255, 0.3);
+                text-decoration: none;
+                letter-spacing: 0.05em;
+                transition: color 0.2s;
+            }
+
+            .factory-link:hover {
+                color: rgba(0, 212, 255, 0.7);
+            }
+
+            /* ── Responsive ───────────────────────────────────────────────── */
+
+            @media (max-width: 440px) {
+                .keypad {
+                    gap: 9px;
+                    padding: 18px;
+                }
+                .key {
+                    height: 68px;
+                    font-size: 20px;
+                }
+                .display {
+                    padding: 28px 24px 20px;
+                    min-height: 140px;
+                }
+                .display-main {
+                    font-size: clamp(36px, 9vw, 52px);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="calc-wrap">
+            <div class="wordmark"><span>Vibed</span> Calc</div>
+
+            <div class="calc-card">
+                <div class="display">
+                    <div class="display-expression" id="expr"></div>
+                    <div class="display-main" id="main">0</div>
+                </div>
+
+                <div class="keypad">
+                    <!-- row 1 -->
+                    <button class="key clear" data-key="C">AC</button>
+                    <button class="key fn" data-key="+/-">±</button>
+                    <button class="key fn" data-key="%">%</button>
+                    <button
+                        class="key op premium"
+                        data-key="÷"
+                        aria-label="divide"
+                    >
+                        ÷
+                    </button>
+
+                    <!-- row 2 -->
+                    <button class="key" data-key="7">7</button>
+                    <button class="key" data-key="8">8</button>
+                    <button class="key" data-key="9">9</button>
+                    <button
+                        class="key op premium"
+                        data-key="×"
+                        aria-label="multiply"
+                    >
+                        ×
+                    </button>
+
+                    <!-- row 3 -->
+                    <button class="key" data-key="4">4</button>
+                    <button class="key" data-key="5">5</button>
+                    <button class="key" data-key="6">6</button>
+                    <button class="key op" data-key="−" aria-label="subtract">
+                        −
+                    </button>
+
+                    <!-- row 4 -->
+                    <button class="key" data-key="1">1</button>
+                    <button class="key" data-key="2">2</button>
+                    <button class="key" data-key="3">3</button>
+                    <button class="key op" data-key="+" aria-label="add">
+                        +
+                    </button>
+
+                    <!-- row 5 -->
+                    <button class="key zero" data-key="0">0</button>
+                    <button class="key" data-key=".">.</button>
+                    <button class="key equal" data-key="=" aria-label="equals">
+                        =
+                    </button>
+                </div>
+            </div>
+            <div class="alphalist-logo">αlphalist</div>
+            <a href="presentation.html" class="factory-link">understand the factory process →</a>
+        </div>
+
+        <!-- Premium modal -->
+        <div
+            class="modal-overlay"
+            id="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-heading"
+        >
+            <div class="modal" id="modal">
+                <div class="modal-eyebrow">Premium feature</div>
+                <h2 class="modal-title" id="modal-heading">
+                    Whoa there,<br />big spender.
+                </h2>
+                <p class="modal-subtitle">
+                    Multiplication and division are reserved for our
+                    distinguished subscribers. People who need
+                    <em>more</em> from arithmetic.
+                </p>
+                <div class="modal-divider"></div>
+                <div class="modal-plan-label">What's included</div>
+                <ul class="modal-features">
+                    <li>
+                        <span class="icon">×</span>
+                        <span class="label">
+                            <strong>Multiplication</strong>
+                            <span
+                                >Scale numbers like a professional scaler</span
+                            >
+                        </span>
+                    </li>
+                    <li>
+                        <span class="icon">÷</span>
+                        <span class="label">
+                            <strong>Division</strong>
+                            <span>Cut things into pieces, legally</span>
+                        </span>
+                    </li>
+                    <li>
+                        <span class="icon">xⁿ</span>
+                        <span class="label">
+                            <strong>Exponentiation</strong>
+                            <span
+                                >For when regular multiplying is too
+                                pedestrian</span
+                            >
+                        </span>
+                    </li>
+                    <li>
+                        <span class="icon">√</span>
+                        <span class="label">
+                            <strong>Quantum root</strong>
+                            <span
+                                >Like a square root but with more
+                                uncertainty</span
+                            >
+                        </span>
+                    </li>
+                    <li>
+                        <span class="icon">∞</span>
+                        <span class="label">
+                            <strong>Imaginary operations</strong>
+                            <span
+                                >We're not sure what these are yet, but they
+                                sound good</span
+                            >
+                        </span>
+                    </li>
+                </ul>
+                <div class="modal-actions">
+                    <div class="btn-coming-soon" aria-disabled="true">
+                        Unlock Premium Arithmetic
+                        <span class="badge">Soon™</span>
+                    </div>
+                    <button class="btn-dismiss" id="btn-dismiss">
+                        Not today, I'll keep adding
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // ── Mirror of src/calculator.ts logic ─────────────────────────
+            const PREMIUM_OPS = new Set(["×", "÷"]);
+
+            function isPremium(op) {
+                return PREMIUM_OPS.has(op);
+            }
+
+            function calculate(a, b, op) {
+                if (isPremium(op)) throw new Error("premium");
+                if (op === "+") return a + b;
+                if (op === "−") return a - b;
+                throw new Error("unknown operation");
+            }
+
+            // ── State ──────────────────────────────────────────────────────
+            let displayValue = "0";
+            let pendingA = null;
+            let pendingOp = null;
+            let justEvaled = false;
+            let justDot = false;
+
+            const mainEl = document.getElementById("main");
+            const exprEl = document.getElementById("expr");
+
+            function renderDisplay() {
+                mainEl.textContent = displayValue;
+            }
+
+            function flashDisplay() {
+                mainEl.classList.add("flash");
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        mainEl.classList.remove("flash");
+                    });
+                });
+            }
+
+            // ── Modal ──────────────────────────────────────────────────────
+            const overlay = document.getElementById("modal-overlay");
+            const dismissBtn = document.getElementById("btn-dismiss");
+
+            function openModal() {
+                overlay.classList.add("visible");
+                dismissBtn.focus();
+            }
+
+            function closeModal() {
+                overlay.classList.remove("visible");
+            }
+
+            dismissBtn.addEventListener("click", closeModal);
+
+            overlay.addEventListener("click", (e) => {
+                if (e.target === overlay) closeModal();
+            });
+
+            document.addEventListener("keydown", (e) => {
+                if (
+                    e.key === "Escape" &&
+                    overlay.classList.contains("visible")
+                ) {
+                    closeModal();
+                }
+            });
+
+            // ── Key handler ────────────────────────────────────────────────
+            function handleKey(key) {
+                // digits
+                if (/^[0-9]$/.test(key)) {
+                    if (justEvaled) {
+                        displayValue = key;
+                        exprEl.textContent = "";
+                        justEvaled = false;
+                    } else if (displayValue === "0") {
+                        displayValue = key;
+                    } else {
+                        displayValue = displayValue + key;
+                    }
+                    renderDisplay();
+                    return;
+                }
+
+                // decimal
+                if (key === ".") {
+                    if (justEvaled) {
+                        displayValue = "0.";
+                        justEvaled = false;
+                    } else if (!displayValue.includes(".")) {
+                        displayValue = displayValue + ".";
+                    }
+                    renderDisplay();
+                    return;
+                }
+
+                // clear
+                if (key === "C") {
+                    displayValue = "0";
+                    pendingA = null;
+                    pendingOp = null;
+                    justEvaled = false;
+                    exprEl.textContent = "";
+                    renderDisplay();
+                    return;
+                }
+
+                // plus/minus toggle
+                if (key === "+/-") {
+                    if (displayValue !== "0") {
+                        displayValue = String(parseFloat(displayValue) * -1);
+                        renderDisplay();
+                    }
+                    return;
+                }
+
+                // percent
+                if (key === "%") {
+                    displayValue = String(parseFloat(displayValue) / 100);
+                    renderDisplay();
+                    return;
+                }
+
+                // operators
+                if (["+", "−", "×", "÷"].includes(key)) {
+                    if (
+                        pendingA !== null &&
+                        pendingOp !== null &&
+                        !justEvaled
+                    ) {
+                        compute();
+                    }
+                    pendingA = parseFloat(displayValue);
+                    pendingOp = key;
+                    justEvaled = false;
+                    exprEl.textContent = displayValue + " " + key;
+                    // prime for next number
+                    justEvaled = true; // re-use flag: next digit starts fresh
+                    return;
+                }
+
+                // equals
+                if (key === "=") {
+                    if (pendingA !== null && pendingOp !== null) {
+                        if (isPremium(pendingOp)) {
+                            openModal();
+                            return;
+                        }
+                        compute();
+                    }
+                    return;
+                }
+            }
+
+            function compute() {
+                const b = parseFloat(displayValue);
+                try {
+                    const result = calculate(pendingA, b, pendingOp);
+                    const resultStr = formatResult(result);
+                    exprEl.textContent =
+                        pendingA + " " + pendingOp + " " + b + " =";
+                    displayValue = resultStr;
+                    renderDisplay();
+                    flashDisplay();
+                    pendingA = null;
+                    pendingOp = null;
+                    justEvaled = true;
+                } catch (err) {
+                    // shouldn't reach here for free ops — premium guard fired earlier
+                    openModal();
+                }
+            }
+
+            function formatResult(n) {
+                // avoid floating point noise like 0.30000000000000004
+                const str = String(parseFloat(n.toPrecision(12)));
+                return str;
+            }
+
+            // ── Keyboard input ─────────────────────────────────────────────
+            document.addEventListener("keydown", (e) => {
+                if (overlay.classList.contains("visible")) return;
+                if (e.metaKey || e.ctrlKey) return;
+                const map = {
+                    0: "0",
+                    1: "1",
+                    2: "2",
+                    3: "3",
+                    4: "4",
+                    5: "5",
+                    6: "6",
+                    7: "7",
+                    8: "8",
+                    9: "9",
+                    ".": ".",
+                    ",": ".",
+                    "+": "+",
+                    "-": "−",
+                    "*": "×",
+                    "/": "÷",
+                    Enter: "=",
+                    "=": "=",
+                    Backspace: "C",
+                    Delete: "C",
+                    Escape: "C",
+                };
+                const key = map[e.key];
+                if (key) {
+                    e.preventDefault();
+                    handleKey(key);
+                    // visual feedback on matching button
+                    const btn = document.querySelector(
+                        `[data-key="${CSS.escape(key)}"]`,
+                    );
+                    if (btn) {
+                        btn.classList.add("pressed");
+                        setTimeout(() => btn.classList.remove("pressed"), 120);
+                    }
+                }
+            });
+
+            // ── Button clicks ──────────────────────────────────────────────
+            document.querySelectorAll(".key").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    handleKey(btn.dataset.key);
+                });
+            });
+        </script>
+    </body>
+</html>
