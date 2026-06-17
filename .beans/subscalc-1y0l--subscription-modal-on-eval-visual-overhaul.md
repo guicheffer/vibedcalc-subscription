@@ -4,7 +4,7 @@ title: Introduce subscription modal and visual adjustments overhaul
 status: completed
 type: feature
 priority: normal
-created_at: 2026-06-16T14:42:18Z
+created_at: 2026-06-17T14:42:18Z
 updated_at: 2026-06-17T09:55:34Z
 ---
 
