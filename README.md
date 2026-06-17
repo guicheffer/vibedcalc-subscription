@@ -1,106 +1,74 @@
-# Factory starter: take the spine home
+<div align="center">
 
-This is the planner, refine and implement factory you built on Day 1, lifted off
-the calculator. The skills are the same. Only the build and test commands
-changed, and those are now knobs in CLAUDE.md. Point this at a real project and
-run a work item through all three stations.
+<img src="screenshot.png" alt="Vibed Calc" width="320" />
 
-Observability is already on: the Stop hook logs every run to runs/trace.jsonl,
-so you have trace data from your first run.
+# Vibed Calc
 
-## Set it up once
+**A calculator for the basics. A subscription for the rest.**
 
-1. Make a new repo from this folder. Copy everything, including the dotfiles
-   (.claude, .beans.yml, .gitignore) - the trailing dot matters:
+[![Live](https://img.shields.io/badge/live-GitHub%20Pages-00d4ff?style=flat-square&labelColor=0a0612)](https://guicheffer.github.io/vibedcalc-subscription/)
+[![Factory](https://img.shields.io/badge/built%20by-AI%20factory-b845ff?style=flat-square&labelColor=0a0612)](https://guicheffer.github.io/vibedcalc-subscription/presentation.html)
+[![Tests](https://img.shields.io/badge/tests-6%20passing-00ff9d?style=flat-square&labelColor=0a0612)](#)
+[![Stack](https://img.shields.io/badge/stack-TypeScript%20%2B%20Vitest-3178c6?style=flat-square&labelColor=0a0612)](#)
 
-   ```bash
-   cp -R <path-to>/take-home/starter/. ~/my-project/
-   cd ~/my-project
-   git init
-   ```
+</div>
 
-2. Scaffold a minimal real project. Paste the prompt below into Claude Code. It
-   creates the smallest thing the factory can run against and fills in your
-   build and test commands.
+---
 
-3. Commit the skeleton so the implement station starts from a clean tree:
+Addition and subtraction — free, forever. Multiplication, division, and the operations we haven't invented yet? Those are for subscribers.
 
-   ```bash
-   git add -A
-   git commit -m "scaffold + factory"
-   ```
+→ **[Open the calculator](https://guicheffer.github.io/vibedcalc-subscription/)**
+→ **[Understand the factory process](https://guicheffer.github.io/vibedcalc-subscription/presentation.html)**
 
-Rename the bean prefix in .beans.yml to your project's short name while you are
-there.
+## What's free
 
-## The scaffold prompt
+| Operation | Status |
+|---|---|
+| `+` Addition | ✅ Free |
+| `−` Subtraction | ✅ Free |
+| `×` Multiplication | 🔒 Premium — Soon™ |
+| `÷` Division | 🔒 Premium — Soon™ |
+| `xⁿ` Exponentiation | 🗺 Roadmap |
+| `∞` Imaginary Ops | 🗺 Roadmap |
 
-```
-Scaffold the smallest real project I can run an agent factory against.
-Stack: <pick one, e.g. TypeScript + Vitest, Python + pytest, Go>.
+## How it was built
 
-Create only a skeleton, not the feature:
-- a manifest with a build command and a test command
-- one source file with one trivial function
-- one passing test for it
-- extend .gitignore with this stack's dependency, build, and test-cache folders
-  (e.g. Python: __pycache__/, .pytest_cache/; Node: node_modules/, dist/) - the
-  implement gate runs build and test, and an un-ignored cache dirties the tree
-  and aborts the next feature's preflight
-
-Then install dependencies, run the build, run the tests, and show me all three
-green. Set the Build and Test commands in CLAUDE.md to match. Do not build any
-feature yet, I will do that through /planner next.
-```
-
-## Adapt it to your language
-
-The factory is language-agnostic; adapting it to your stack is a deliberate step,
-not an afterthought. Two things are yours to set (the scaffold prompt does both
-for you, but set them by hand if you wire a project yourself):
-
-- In CLAUDE.md, set Build and Test to your stack's commands (npm run build and
-  npm test, pytest, cargo test, go test ./..., and so on). The implement gate
-  runs them before every commit.
-- In .gitignore, add your stack's dependency, build, and test-cache folders so
-  build and test runs do not dirty the tree.
-
-Nothing else moves. The stations, the contract and the guardrails are identical
-in every language.
-
-## Run the pipeline
+Two features shipped through a three-station AI factory:
 
 ```
-/planner <your feature in one sentence>
-/refine <bean-id>
-/implement <bean-id>
+/planner <idea>   →  Bean with ## High-Level Plan
+/refine <id>      →  Bean with ## Refined Plan  (file paths, signatures, test sketch)
+/implement <id>   →  branch + commits + ## Implementation Log
 ```
 
-Watch the Bean after each station, not just the chat. The Bean is the hand-off.
-After a run, look at runs/trace.jsonl to see what the factory did.
+Each station passes a **Bean** — a structured markdown artifact managed by the [`beans` CLI](https://github.com/hmans/beans). The headings are exact-match contracts. Rename one, break the next.
 
-## Prove it is your Day 1 factory
+**Feature 1 — `subscalc-uizf`:** Glassmorphism dark UI, free ops wired, premium keys rendered but inactive.
 
-Diff these skills against the calculator skills you built on Day 1:
+**Feature 2 — `subscalc-1y0l`:** Subscription modal fires on `=` when the expression contains a premium op. Visual overhaul. Cmd/Ctrl keyboard guard.
+
+## Factory guardrails
+
+- **Trace hook** — every run appends a JSON line to `runs/trace.jsonl`
+- **Path guard** — `guard-paths.sh` blocks `/implement` if any path in the Refined Plan doesn't exist
+- **Evals** — `eval-kit/check.sh` runs 4 checks on any bean: plan altitude, refined plan present, real acceptance criteria, paths exist
 
 ```bash
-diff -ru <path-to>/dev-bootcamp-factory-workshop/sandbox/.claude/skills .claude/skills
+bash eval-kit/check.sh eval-kit/beans/good-bean.md   # all PASS
+bash eval-kit/check.sh eval-kit/beans/broken-bean.md # three FAIL
 ```
 
-Two things are project specific: the build command and the test command. The
-rest of the diff is worked examples turned into placeholders. Every phase, every
-guardrail and the station contract are unchanged. The factory was never about
-the calculator.
+## Run locally
 
-## What is in here
+```bash
+npm install
+npm run build   # tsc --noEmit
+npm test        # vitest run — 6 tests
+npm start       # opens index.html in browser
+```
 
-```
-.claude/skills/planner     create a Bean with a High-Level Plan
-.claude/skills/refine      explore the code, append a Refined Plan
-.claude/skills/implement   branch, edit, build, test, commit, log
-.claude/settings.json      beans prime on start, trace hook on stop
-.claude/hooks/             the trace hook
-.beans.yml                 beans config (rename the prefix)
-.gitignore                 ignores .beans/ and runs/ so they do not dirty the tree
-CLAUDE.md                  your build and test commands, conventions, lessons
-```
+---
+
+<div align="center">
+<sub>Built at αlphalist Developer Bootcamp · Hamburg 2026</sub>
+</div>
